@@ -1,0 +1,81 @@
+ <!DOCTYPE html>
+ <html>
+ <head>
+     <title>IoT Fire Alarm System</title>
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
+     <style>
+         .alarm {
+             color: red;
+             font-weight: bold;
+         }
+     </style>
+ </head>
+ <body>
+     <h1>Fire Alarm Status</h1>
+
+     <div id="sensorData"></div>
+     <div id="alarms"></div>
+
+     <script>
+         const socket = io(); // Connect to the Socket.IO server
+
+         socket.on('connect', () => {
+             console.log('Connected to server');
+         });
+
+         socket.on('sensor_update', (data) => {
+             const sensorDataElem = document.getElementById('sensorData');
+             const key = `${data.location}-${data.sensor}`;
+             let element = document.getElementById(key);
+
+             if (!element) {
+                 element = document.createElement('div');
+                 element.id = key;
+                 sensorDataElem.appendChild(element);
+             }
+             element.textContent = `${data.location} - ${data.sensor}: ${data.value}`;
+         });
+
+         socket.on('alarm', (data) => {
+             const alarmsElem = document.getElementById('alarms');
+             const alarmDiv = document.createElement('div');
+             alarmDiv.textContent = `ALARM: ${data.message} in ${data.location}`;
+             alarmDiv.classList.add('alarm');
+             alarmsElem.appendChild(alarmDiv);
+
+             // Browser notification
+             if (Notification.permission === "granted") {
+                 new Notification(`Fire Alarm: ${data.message}`, {
+                     body: `Location: ${data.location}`,
+                     icon: 'path/to/your/alarm-icon.png' // Optional icon
+                 });
+             } else if (Notification.permission !== "denied") {
+                 Notification.requestPermission().then(permission => {
+                     if (permission === "granted") {
+                         new Notification(`Fire Alarm: ${data.message}`, {
+                             body: `Location: ${data.location}`,
+                             icon: 'path/to/your/alarm-icon.png'
+                         });
+                     }
+                 });
+             }
+
+             // Play a sound (you'll need an alarm.mp3 file)
+             const audio = new Audio('alarm.mp3'); // Or a relative path
+             audio.play();
+         });
+
+
+       // Request notification permission on page load
+       document.addEventListener('DOMContentLoaded', () => {
+         if (!Notification) {
+           alert('Desktop notifications not available in your browser.');
+           return;
+         }
+
+         if (Notification.permission !== 'granted')
+           Notification.requestPermission();
+       });
+     </script>
+ </body>
+ </html>
